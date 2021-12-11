@@ -11,7 +11,7 @@ import * as dat from '../../libs/dat.gui.module.js';
 /** @type WebGLRenderingContext */
 let gl;
 
-let mode;
+let mode,lighsMode;
 let mView, mProjection;
 let aspect;
 
@@ -31,11 +31,37 @@ function setup(shaders)
 
     let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
 
-    //const gui = new dat.GUI();
 
-    var gui = new dat.GUI();
+    const gui = new dat.GUI();
+    const obj = new dat.GUI();
 
-    //Creating Folders
+    let object = {
+        object : 'SPHERE'
+
+    }
+
+    let material = {
+       
+        Ka : [0,25,0],
+        Kd : [0,100,0],
+        Ks : [255,255,255],
+        shininess : 50       
+    }
+
+
+    obj.add(object, 'object', ['SPHERE', 'CUBE']);
+
+    //Creating Folders for obj
+    var materialF = obj.addFolder('material');
+
+    //Adding material variables
+    materialF.addColor(material,'Ka');
+    materialF.addColor(material,'Kd');
+    materialF.addColor(material,'Ks');
+    materialF.add(material,'shininess');
+   
+
+    //Creating Folders for gui
     const optionsF = gui.addFolder('options');
     var cameraF = gui.addFolder('camera');
     var eyeF = cameraF.addFolder('eye');
@@ -43,53 +69,46 @@ function setup(shaders)
     var upF = cameraF.addFolder('up');
 
     let options = {
-        wireframe : true,
-        normals : false
+        culling : true,
+        depth : true,
+        lights : true,
     }
 
 
-    //Creating options variables and adding them
-
-    optionsF.add(options, 'wireframe').listen().onChange(function(){
-        options.wireframe = true;
-        options.normals = false;
-    });
-
-    optionsF.add(options, 'normals').listen().onChange(function(){
-        options.wireframe = false;
-        options.normals = true;
-    });
+    //Adding options variables
+    optionsF.add(options, 'culling');
+    optionsF.add(options, 'depth');
+    optionsF.add(options, 'lights');
 
     let camera = {
        
-        eye : vec3(0,0,5),
+        eye : vec3(1,3,5),
         at : vec3(0,0,0),
         up : vec3(0,1,0),
         fovy : 45,
         aspect : canvas.width / canvas.height,
         near : 0.1,
-        far : 20
-            
+        far : 20           
     }
 
-    //Creating camera variables and adding them
+    //Adding camera variables
     cameraF.add(camera, 'fovy', 0, 100).listen();
     cameraF.add(camera, 'aspect',0,10).listen();
     cameraF.add(camera, 'near', 0, 19.9).listen();
     cameraF.add(camera, 'far', 0, 20).listen();
 
 
-    //Creating eye variables and adding them
+    //Adding eye variables
     eyeF.add(camera.eye, '0').listen();
     eyeF.add(camera.eye, '1').listen();
     eyeF.add(camera.eye, '2').listen();
 
-    //Creating at variables and adding them
+    //Adding at variables
     atF.add(camera.at, '0').listen();
     atF.add(camera.at, '1').listen();
     atF.add(camera.at, '2').listen();
 
-    //Creating up variables and adding them
+    //Adding up variables
     upF.add(camera.up, '0').listen();
     upF.add(camera.up, '1').listen();
     upF.add(camera.up, '2').listen();
@@ -105,6 +124,8 @@ function setup(shaders)
     TORUS.init(gl);
     CUBE.init(gl);
     SPHERE.init(gl);
+
+    gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
     
     window.requestAnimationFrame(render);
@@ -178,7 +199,7 @@ function setup(shaders)
         multScale([FLOORX_SCALE,FLOORY_SCALE,FLOORZ_SCALE]);
      
         uploadModelView();
-        CUBE.draw(gl, program, mode);
+        CUBE.draw(gl, program, gl.TRIANGLES);
     }
 
     function light(){
@@ -186,13 +207,19 @@ function setup(shaders)
         multScale([LIGHT_DIAMETER,LIGHT_DIAMETER,LIGHT_DIAMETER]);
      
         uploadModelView();
-        SPHERE.draw(gl, program, mode);
+        SPHERE.draw(gl, program, lighsMode);
     }
 
 
 
     function render()
     {
+        if(options.culling)
+        gl.disable(gl.CULL_FACE);
+        else gl.enable(gl.CULL_FACE);
+    
+        gl.depthMask(options.depth); 
+    
         window.requestAnimationFrame(render);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -206,9 +233,13 @@ function setup(shaders)
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
         
-        if(options.wireframe == true)
-        mode = gl.LINES;
-        else mode = gl.TRIANGLES;
+        //if(options.wireframe == true)
+        mode = gl.TRIANGLES;
+        //else mode = gl.TRIANGLES;
+
+        if(options.lights)  //Not sure se é isto que é para acontecer
+        lighsMode = gl.LINES;
+        else lighsMode = gl.TRIANGLES;
         
         pushMatrix();
             torus();
@@ -220,7 +251,7 @@ function setup(shaders)
             light();
         popMatrix();
        
-      
+        
     }
 }
 
