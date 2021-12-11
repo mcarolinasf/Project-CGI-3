@@ -3,6 +3,8 @@ import { ortho, lookAt, flatten, perspective, vec3 } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationY, multScale, multTranslation, popMatrix, pushMatrix} from "../../libs/stack.js";
 
 import * as TORUS from '../../libs/torus.js';
+import * as CUBE from '../../libs/cube.js';
+import * as SPHERE from '../../libs/sphere.js';
 import * as dat from '../../libs/dat.gui.module.js';
 
 
@@ -12,10 +14,13 @@ let gl;
 let mode;
 let mView, mProjection;
 let aspect;
-let mouseDown = false;
-let mouseX = 0;
-let mouseY = 0;
 
+
+const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
+const TORUSX_SCALE = 1,TORUSY_SCALE = 1, TORUSZ_SCALE = 1;
+const LIGHT_DIAMETER = 0.1;
+
+const torus_DISK_RADIUS = 0.2 * TORUSY_SCALE;
 
 function setup(shaders)
 {
@@ -98,6 +103,8 @@ function setup(shaders)
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     TORUS.init(gl);
+    CUBE.init(gl);
+    SPHERE.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
     
     window.requestAnimationFrame(render);
@@ -157,11 +164,31 @@ function setup(shaders)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
-    function Torus(){
+    function torus(){
      
+        multTranslation([0,torus_DISK_RADIUS,0]);
+        multScale([TORUSX_SCALE,TORUSY_SCALE,TORUSZ_SCALE]);
+
         uploadModelView();
         TORUS.draw(gl, program, mode);
     }
+
+    function cube(){
+        multTranslation([0,-FLOORY_SCALE/2,0]);
+        multScale([FLOORX_SCALE,FLOORY_SCALE,FLOORZ_SCALE]);
+     
+        uploadModelView();
+        CUBE.draw(gl, program, mode);
+    }
+
+    function light(){
+        multTranslation([0,TORUSY_SCALE,0]);
+        multScale([LIGHT_DIAMETER,LIGHT_DIAMETER,LIGHT_DIAMETER]);
+     
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
 
 
     function render()
@@ -184,7 +211,13 @@ function setup(shaders)
         else mode = gl.TRIANGLES;
         
         pushMatrix();
-            Torus();
+            torus();
+        popMatrix();
+        pushMatrix();
+            cube();
+        popMatrix();
+        pushMatrix();
+            light();
         popMatrix();
        
       
