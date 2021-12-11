@@ -2,8 +2,7 @@ import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../
 import { ortho, lookAt, flatten, perspective, vec3 } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationY, multScale, multTranslation, popMatrix, pushMatrix} from "../../libs/stack.js";
 
-import * as CUBE from '../../libs/cube.js';
-import * as SPHERE from '../../libs/sphere.js';
+import * as TORUS from '../../libs/torus.js';
 import * as dat from '../../libs/dat.gui.module.js';
 
 
@@ -98,8 +97,7 @@ function setup(shaders)
 
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    CUBE.init(gl);
-    SPHERE.init(gl);
+    TORUS.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
     
     window.requestAnimationFrame(render);
@@ -159,17 +157,12 @@ function setup(shaders)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
-    function Cube(){
+    function Torus(){
      
         uploadModelView();
-        CUBE.draw(gl, program, mode);
+        TORUS.draw(gl, program, mode);
     }
 
-    function Sphere(){
-     
-        uploadModelView();
-        SPHERE.draw(gl, program, mode);
-    }
 
     function render()
     {
@@ -191,11 +184,9 @@ function setup(shaders)
         else mode = gl.TRIANGLES;
         
         pushMatrix();
-            Cube();
+            Torus();
         popMatrix();
-        pushMatrix();
-            Sphere();
-        popMatrix();
+       
       
     }
 }
