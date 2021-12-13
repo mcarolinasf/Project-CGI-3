@@ -28,6 +28,9 @@ const LIGHT_DIAMETER = 0.1;
 
 const TORUS_DISK_RADIUS = 0.2 * Y_SCALE;
 const CUBE_RADIUS = 0.2 * Y_SCALE;
+const SPHERE_RADIUS = 0.2 * Y_SCALE;
+const CYLINDER_RADIUS = 0.2 * Y_SCALE;
+const PYRAMID_RADIUS = 0.2 * Y_SCALE;
 
 function setup(shaders){
     let canvas = document.getElementById("gl-canvas");
@@ -294,12 +297,20 @@ function setup(shaders){
         
         pushMatrix();
             switch(object.type){
-                //['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
                 case objectsArray[0]:
                     draw_object(TORUS, TORUS_DISK_RADIUS);
                     break;
                 case objectsArray[1]:
                     draw_object(CUBE, CUBE_RADIUS);
+                    break;
+                case objectsArray[2]:
+                    draw_object(SPHERE, SPHERE_RADIUS);
+                    break;
+                case objectsArray[3]:
+                    draw_object(CYLINDER, CYLINDER_RADIUS);
+                    break;
+                case objectsArray[4]:
+                    draw_object(PYRAMID, PYRAMID_RADIUS);
                     break;
             }
         popMatrix();
