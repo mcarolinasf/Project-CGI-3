@@ -16,6 +16,9 @@ let mView, mProjection;
 let aspect;
 
 
+const OBJ_DONUT = "DONUT", OBJ_CUBE = "CUBE";
+let object_types = [OBJ_DONUT, OBJ_CUBE];
+
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
 const TORUSX_SCALE = 1,TORUSY_SCALE = 1, TORUSZ_SCALE = 1;
 const CUBEX_SCALE = 1,CUBEY_SCALE = 1, CUBEZ_SCALE = 1;
@@ -23,7 +26,7 @@ const CUBEX_SCALE = 1,CUBEY_SCALE = 1, CUBEZ_SCALE = 1;
 const LIGHT_DIAMETER = 0.1;
 
 const TORUS_DISK_RADIUS = 0.2 * TORUSY_SCALE;
-const CUBE_DISK_RADIUS = 0.2 * CUBEY_SCALE;
+const CUBE_RADIUS = 0.2 * CUBEY_SCALE;
 
 function setup(shaders){
     let canvas = document.getElementById("gl-canvas");
@@ -38,7 +41,7 @@ function setup(shaders){
     const obj = new dat.GUI();
 
     let object = {
-        obj_type : 'SPHERE'
+        obj_type : 'DONUT'
     }
 
     let material = {
@@ -48,8 +51,7 @@ function setup(shaders){
         shininess : 50       
     }
 
-
-    obj.add(object, 'obj_type', ['SPHERE', 'CUBE']);
+    obj.add(object, 'obj_type', object_types);
     //Creating Folders for obj
     var materialF = obj.addFolder('material');
 
@@ -178,21 +180,15 @@ function setup(shaders){
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
-    function torus(){
-        multTranslation([0,TORUS_DISK_RADIUS,0]);
-        multScale([TORUSX_SCALE,TORUSY_SCALE,TORUSZ_SCALE]);
+
+    function draw_object(obj, radius, x_scale, y_scale, z_scale){
+        multTranslation([0,radius,0]);
+        multScale([x_scale,y_scale,z_scale]);
 
         uploadModelView();
-        TORUS.draw(gl, program, mode);
+        obj.draw(gl, program, mode)
     }
 
-    function cube(){
-        multTranslation([0,CUBE_DISK_RADIUS,0]);
-        multScale([CUBEX_SCALE, CUBEY_SCALE, CUBEZ_SCALE]);
-
-        uploadModelView();
-        CUBE.draw(gl, program, mode);
-    }
 
     function floor(){
         multTranslation([0,-FLOORY_SCALE/2,0]);
@@ -212,8 +208,7 @@ function setup(shaders){
 
 
 
-    function render()
-    {
+    function render(){
         if(options.culling) gl.enable(gl.CULL_FACE);
         else gl.disable(gl.CULL_FACE);
 
@@ -243,8 +238,14 @@ function setup(shaders){
         else lighsMode = gl.TRIANGLES;
         
         pushMatrix();
-            if(object.obj_type == 'SPHERE') torus();
-            else if(object.obj_type == 'CUBE') cube();
+            switch(object.obj_type){
+                case "DONUT":
+                    draw_object(TORUS, TORUS_DISK_RADIUS, TORUSX_SCALE, TORUSY_SCALE, TORUSZ_SCALE);
+                    break;
+                case "CUBE":
+                    draw_object(CUBE, CUBE_RADIUS, CUBEX_SCALE, CUBEY_SCALE, CUBEZ_SCALE);
+                    break;
+            }
         popMatrix();
         pushMatrix();
             floor();
