@@ -18,12 +18,14 @@ let aspect;
 
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
 const TORUSX_SCALE = 1,TORUSY_SCALE = 1, TORUSZ_SCALE = 1;
+const CUBEX_SCALE = 1,CUBEY_SCALE = 1, CUBEZ_SCALE = 1;
+
 const LIGHT_DIAMETER = 0.1;
 
-const torus_DISK_RADIUS = 0.2 * TORUSY_SCALE;
+const TORUS_DISK_RADIUS = 0.2 * TORUSY_SCALE;
+const CUBE_DISK_RADIUS = 0.2 * CUBEY_SCALE;
 
-function setup(shaders)
-{
+function setup(shaders){
     let canvas = document.getElementById("gl-canvas");
     //let aspect = canvas.width / canvas.height;
 
@@ -36,12 +38,10 @@ function setup(shaders)
     const obj = new dat.GUI();
 
     let object = {
-        object : 'SPHERE'
-
+        obj_type : 'SPHERE'
     }
 
     let material = {
-       
         Ka : [0,25,0],
         Kd : [0,100,0],
         Ks : [255,255,255],
@@ -49,8 +49,7 @@ function setup(shaders)
     }
 
 
-    obj.add(object, 'object', ['SPHERE', 'CUBE']);
-
+    obj.add(object, 'obj_type', ['SPHERE', 'CUBE']);
     //Creating Folders for obj
     var materialF = obj.addFolder('material');
 
@@ -81,7 +80,6 @@ function setup(shaders)
     optionsF.add(options, 'lights');
 
     let camera = {
-       
         eye : vec3(1,3,5),
         at : vec3(0,0,0),
         up : vec3(0,1,0),
@@ -113,8 +111,6 @@ function setup(shaders)
     upF.add(camera.up, '1').listen();
     upF.add(camera.up, '2').listen();
 
-    
-   
 
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
@@ -167,9 +163,7 @@ function setup(shaders)
         }
     }
 
-       function resize_canvas(event)
-    
-    {
+       function resize_canvas(event){
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -177,17 +171,14 @@ function setup(shaders)
 
         gl.viewport(0,0,canvas.width, canvas.height);
         mProjection = perspective(camera.fovy, camera.aspect, camera.near,camera.far);
-
     }
 
-    function uploadModelView()
-    {
+    function uploadModelView(){
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
     function torus(){
-     
-        multTranslation([0,torus_DISK_RADIUS,0]);
+        multTranslation([0,TORUS_DISK_RADIUS,0]);
         multScale([TORUSX_SCALE,TORUSY_SCALE,TORUSZ_SCALE]);
 
         uploadModelView();
@@ -195,6 +186,14 @@ function setup(shaders)
     }
 
     function cube(){
+        multTranslation([0,CUBE_DISK_RADIUS,0]);
+        multScale([CUBEX_SCALE, CUBEY_SCALE, CUBEZ_SCALE]);
+
+        uploadModelView();
+        CUBE.draw(gl, program, mode);
+    }
+
+    function floor(){
         multTranslation([0,-FLOORY_SCALE/2,0]);
         multScale([FLOORX_SCALE,FLOORY_SCALE,FLOORZ_SCALE]);
      
@@ -212,10 +211,8 @@ function setup(shaders)
 
 
 
-    function render()
-    {
-        if(options.culling)
-        gl.disable(gl.CULL_FACE);
+    function render(){
+        if(options.culling) gl.disable(gl.CULL_FACE);
         else gl.enable(gl.CULL_FACE);
     
         gl.depthMask(options.depth); 
@@ -227,7 +224,7 @@ function setup(shaders)
         mView = lookAt(camera.eye ,camera.at,camera.up);
         loadMatrix(mView);
 
-        mProjection = perspective(camera.fovy, camera.aspect, camera.near,camera.far);
+        mProjection = perspective(camera.fovy, camera.aspect, camera.near, camera.far);
 
         gl.useProgram(program);
         
@@ -237,15 +234,18 @@ function setup(shaders)
         mode = gl.TRIANGLES;
         //else mode = gl.TRIANGLES;
 
+        
+
         if(options.lights)  //Not sure se é isto que é para acontecer
         lighsMode = gl.LINES;
         else lighsMode = gl.TRIANGLES;
         
         pushMatrix();
-            torus();
+            if(object.obj_type == 'SPHERE') torus();
+            else if(object.obj_type == 'CUBE') cube();
         popMatrix();
         pushMatrix();
-            cube();
+            floor();
         popMatrix();
         pushMatrix();
             light();
