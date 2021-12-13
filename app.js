@@ -22,19 +22,11 @@ let lightsArray = [];
 let animation = true;
 let objectsArray = ['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
 
-const X_SCALE = 1, Y_SCALE = 1, Z_SCALE = 1;
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
 const LIGHT_DIAMETER = 0.1;
 
-const TORUS_DISK_RADIUS = 0.2 * Y_SCALE;
-const CUBE_RADIUS = 0.2 * Y_SCALE;
-const SPHERE_RADIUS = 0.2 * Y_SCALE;
-const CYLINDER_RADIUS = 0.2 * Y_SCALE;
-const PYRAMID_RADIUS = 0.2 * Y_SCALE;
-
 function setup(shaders){
     let canvas = document.getElementById("gl-canvas");
-    //let aspect = canvas.width / canvas.height;
 
     gl = setupWebGL(canvas);
 
@@ -223,14 +215,7 @@ function setup(shaders){
     }
 
 
-    function draw_object(obj, radius){
-        multTranslation([0,radius,0]);
-        multScale([X_SCALE, Y_SCALE, Z_SCALE]);
-
-        uploadModelView();
-        obj.draw(gl, program, mode)
-    }
-
+    
 
     function floor(){
         multTranslation([0,-FLOORY_SCALE/2,0]);
@@ -264,27 +249,27 @@ function setup(shaders){
         SPHERE.draw(gl, program, lighsMode);
     }
 
-
-    function draw_current_object(){
+  
+    function objectD(){
+        uploadModelView();
         switch(object.type){
             case objectsArray[0]:
-                draw_object(TORUS, TORUS_DISK_RADIUS);
+                TORUS.draw(gl, program, mode)
                 break;
             case objectsArray[1]:
-                draw_object(CUBE, CUBE_RADIUS);
+                CUBE.draw(gl, program, mode)
                 break;
             case objectsArray[2]:
-                draw_object(SPHERE, SPHERE_RADIUS);
+                SPHERE.draw(gl, program, mode)
                 break;
             case objectsArray[3]:
-                draw_object(CYLINDER, CYLINDER_RADIUS);
+                CYLINDER.draw(gl, program, mode)
                 break;
             case objectsArray[4]:
-                draw_object(PYRAMID, PYRAMID_RADIUS);
+                PYRAMID.draw(gl, program, mode)
                 break;
         }
     }
-
 
 
     function render(){
@@ -317,7 +302,8 @@ function setup(shaders){
         else lighsMode = gl.TRIANGLES;
         
         pushMatrix();
-        draw_current_object();
+            multTranslation([0,0.5,0]);
+            objectD();
         popMatrix();
         pushMatrix();
             floor();
