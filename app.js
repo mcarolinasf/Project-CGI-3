@@ -1,32 +1,33 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
 import { ortho, lookAt, flatten, perspective, vec3 } from "../../libs/MV.js";
-import {modelView, loadMatrix, multRotationY, multScale, multTranslation, popMatrix, pushMatrix} from "../../libs/stack.js";
+import {modelView, loadMatrix, multRotationY,multRotationZ, multRotationX, multScale, multTranslation, popMatrix, pushMatrix} from "../../libs/stack.js";
 
 import * as TORUS from '../../libs/torus.js';
 import * as CUBE from '../../libs/cube.js';
 import * as SPHERE from '../../libs/sphere.js';
+import * as CYLINDER from '../../libs/cylinder.js';
+import * as PYRAMID from '../../libs/pyramid.js';
 import * as dat from '../../libs/dat.gui.module.js';
 
 
 /** @type WebGLRenderingContext */
 let gl;
 
+
+let speed = 0.5;
+let time = 0;
 let mode,lighsMode;
 let mView, mProjection;
-let aspect;
+let lightsArray = [];
+let animation = true;
+let objectsArray = ['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
 
-
-const OBJ_DONUT = "DONUT", OBJ_CUBE = "CUBE";
-let object_types = [OBJ_DONUT, OBJ_CUBE];
-
+const X_SCALE = 1, Y_SCALE = 1, Z_SCALE = 1;
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
-const TORUSX_SCALE = 1,TORUSY_SCALE = 1, TORUSZ_SCALE = 1;
-const CUBEX_SCALE = 1,CUBEY_SCALE = 1, CUBEZ_SCALE = 1;
-
 const LIGHT_DIAMETER = 0.1;
 
-const TORUS_DISK_RADIUS = 0.2 * TORUSY_SCALE;
-const CUBE_RADIUS = 0.2 * CUBEY_SCALE;
+const TORUS_DISK_RADIUS = 0.2 * Y_SCALE;
+const CUBE_RADIUS = 0.2 * Y_SCALE;
 
 function setup(shaders){
     let canvas = document.getElementById("gl-canvas");
@@ -41,7 +42,7 @@ function setup(shaders){
     const obj = new dat.GUI();
 
     let object = {
-        obj_type : 'DONUT'
+        type :  objectsArray[1]
     }
 
     let material = {
@@ -51,7 +52,8 @@ function setup(shaders){
         shininess : 50       
     }
 
-    obj.add(object, 'obj_type', object_types);
+    obj.add(object, 'type', objectsArray);
+
     //Creating Folders for obj
     var materialF = obj.addFolder('material');
 
@@ -63,8 +65,9 @@ function setup(shaders){
    
 
     //Creating Folders for gui
-    const optionsF = gui.addFolder('options');
+    var optionsF = gui.addFolder('options');
     var cameraF = gui.addFolder('camera');
+    var lightsF = gui.addFolder('lights');
     var eyeF = cameraF.addFolder('eye');
     var atF = cameraF.addFolder('at');
     var upF = cameraF.addFolder('up');
@@ -75,6 +78,43 @@ function setup(shaders){
         lights : true,
     }
 
+    let lightO = {
+        position : vec3(1,1.2,0),
+        ambient: [75,75,75],
+        diffuse: [175,175,175],
+        specular: [255,255,255],
+        directional : false,
+        pontual : false,
+        active : true,
+        animation : true
+    }
+
+    addLight();
+
+    //Adding light variables
+    function addLight(){
+
+        var lightsX = lightsF.addFolder('light1');
+        var positionLF = lightsX.addFolder('position');
+        var optionsLF = lightsX.addFolder('options');
+
+        positionLF.add(lightO.position, '0');
+        positionLF.add(lightO.position, '1');
+        positionLF.add(lightO.position, '2');
+
+        optionsLF.add(lightO,'directional');
+        optionsLF.add(lightO,'pontual');
+        optionsLF.add(lightO,'active');
+        optionsLF.add(lightO,'animation').listen();
+
+        lightsX.addColor(lightO,'ambient');
+        lightsX.addColor(lightO,'diffuse');
+        lightsX.addColor(lightO,'specular');
+
+      
+        lightsArray.push(lightO);
+    }
+
 
     //Adding options variables
     optionsF.add(options, 'culling');
@@ -83,7 +123,7 @@ function setup(shaders){
 
     let camera = {
        
-        eye : vec3(1,0,5),
+        eye : vec3(1,2,5),
         at : vec3(0,0,0),
         up : vec3(0,1,0),
         fovy : 45,
@@ -119,10 +159,12 @@ function setup(shaders){
     window.addEventListener("resize", resize_canvas);
 
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.1, 0.1, 0.1, 1.0);
     TORUS.init(gl);
     CUBE.init(gl);
     SPHERE.init(gl);
+    CYLINDER.init(gl);
+    PYRAMID.init(gl);
 
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
@@ -152,7 +194,6 @@ function setup(shaders){
             if(diff > 1)
             camera.eye[i] -= offset;
         }
-
     }
 
     function moveBothEyeAt(offset){
@@ -166,11 +207,9 @@ function setup(shaders){
         }
     }
 
-       function resize_canvas(event){
+    function resize_canvas(event){
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-
-        aspect = canvas.width / canvas.height;
 
         gl.viewport(0,0,canvas.width, canvas.height);
         mProjection = perspective(camera.fovy, camera.aspect, camera.near,camera.far);
@@ -181,9 +220,9 @@ function setup(shaders){
     }
 
 
-    function draw_object(obj, radius, x_scale, y_scale, z_scale){
+    function draw_object(obj, radius){
         multTranslation([0,radius,0]);
-        multScale([x_scale,y_scale,z_scale]);
+        multScale([X_SCALE, Y_SCALE, Z_SCALE]);
 
         uploadModelView();
         obj.draw(gl, program, mode)
@@ -198,8 +237,24 @@ function setup(shaders){
         CUBE.draw(gl, program, gl.TRIANGLES);
     }
 
-    function light(){
-        multTranslation([0,TORUSY_SCALE,0]);
+    function lights(){
+
+        multRotationY(time);
+        for(let i = 0; i < lightsArray.length ;i++){
+            pushMatrix();
+                let l = lightsArray[i];
+                if(l.animation) time += speed;
+                if(l.active){
+                    light(l.position[0],l.position[1],l.position[2]);
+                }else l.animation = false;
+            popMatrix();
+        }
+   
+    }
+
+
+    function light(x,y,z){
+        multTranslation([x,y,z]);
         multScale([LIGHT_DIAMETER,LIGHT_DIAMETER,LIGHT_DIAMETER]);
      
         uploadModelView();
@@ -238,12 +293,13 @@ function setup(shaders){
         else lighsMode = gl.TRIANGLES;
         
         pushMatrix();
-            switch(object.obj_type){
-                case "DONUT":
-                    draw_object(TORUS, TORUS_DISK_RADIUS, TORUSX_SCALE, TORUSY_SCALE, TORUSZ_SCALE);
+            switch(object.type){
+                //['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
+                case objectsArray[0]:
+                    draw_object(TORUS, TORUS_DISK_RADIUS);
                     break;
-                case "CUBE":
-                    draw_object(CUBE, CUBE_RADIUS, CUBEX_SCALE, CUBEY_SCALE, CUBEZ_SCALE);
+                case objectsArray[1]:
+                    draw_object(CUBE, CUBE_RADIUS);
                     break;
             }
         popMatrix();
@@ -251,7 +307,7 @@ function setup(shaders){
             floor();
         popMatrix();
         pushMatrix();
-            light();
+            lights();
         popMatrix();
        
         
