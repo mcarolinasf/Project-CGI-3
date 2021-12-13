@@ -82,7 +82,7 @@ function setup(shaders)
 
     let camera = {
        
-        eye : vec3(1,3,5),
+        eye : vec3(1,0,5),
         at : vec3(0,0,0),
         up : vec3(0,1,0),
         fovy : 45,
@@ -215,9 +215,9 @@ function setup(shaders)
     function render()
     {
         if(options.culling)
-        gl.disable(gl.CULL_FACE);
-        else gl.enable(gl.CULL_FACE);
-    
+        gl.enable(gl.CULL_FACE);
+        else gl.disable(gl.CULL_FACE);
+
         gl.depthMask(options.depth); 
     
         window.requestAnimationFrame(render);
