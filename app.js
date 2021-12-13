@@ -265,6 +265,27 @@ function setup(shaders){
     }
 
 
+    function draw_current_object(){
+        switch(object.type){
+            case objectsArray[0]:
+                draw_object(TORUS, TORUS_DISK_RADIUS);
+                break;
+            case objectsArray[1]:
+                draw_object(CUBE, CUBE_RADIUS);
+                break;
+            case objectsArray[2]:
+                draw_object(SPHERE, SPHERE_RADIUS);
+                break;
+            case objectsArray[3]:
+                draw_object(CYLINDER, CYLINDER_RADIUS);
+                break;
+            case objectsArray[4]:
+                draw_object(PYRAMID, PYRAMID_RADIUS);
+                break;
+        }
+    }
+
+
 
     function render(){
         if(options.culling) gl.enable(gl.CULL_FACE);
@@ -296,23 +317,7 @@ function setup(shaders){
         else lighsMode = gl.TRIANGLES;
         
         pushMatrix();
-            switch(object.type){
-                case objectsArray[0]:
-                    draw_object(TORUS, TORUS_DISK_RADIUS);
-                    break;
-                case objectsArray[1]:
-                    draw_object(CUBE, CUBE_RADIUS);
-                    break;
-                case objectsArray[2]:
-                    draw_object(SPHERE, SPHERE_RADIUS);
-                    break;
-                case objectsArray[3]:
-                    draw_object(CYLINDER, CYLINDER_RADIUS);
-                    break;
-                case objectsArray[4]:
-                    draw_object(PYRAMID, PYRAMID_RADIUS);
-                    break;
-            }
+        draw_current_object();
         popMatrix();
         pushMatrix();
             floor();
