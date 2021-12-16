@@ -19,7 +19,6 @@ let time = 0;
 let mode,lighsMode;
 let mView, mProjection;
 let lightsArray = [];
-let animation = true;
 let objectsArray = ['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
 
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
@@ -66,6 +65,13 @@ function setup(shaders){
     var eyeF = cameraF.addFolder('eye');
     var atF = cameraF.addFolder('at');
     var upF = cameraF.addFolder('up');
+
+/*
+    //Melhorar
+    const uShininess = gl.getUniformLocation(program, "uMaterial.shininess");
+    const uKaOfLight0 = gl.getUniformLocation(program, "uLight[0].Ia");
+*/
+
 
     let options = {
         culling : true,
@@ -205,6 +211,7 @@ function setup(shaders){
     function resize_canvas(event){
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        camera.aspect = canvas.width / canvas.height;
 
         gl.viewport(0,0,canvas.width, canvas.height);
         mProjection = perspective(camera.fovy, camera.aspect, camera.near,camera.far);
@@ -215,10 +222,8 @@ function setup(shaders){
     }
 
 
-    
-
     function floor(){
-        multTranslation([0,-FLOORY_SCALE/2,0]);
+        multTranslation([0,-FLOORY_SCALE/2 - 0.5,0]);
         multScale([FLOORX_SCALE,FLOORY_SCALE,FLOORZ_SCALE]);
      
         uploadModelView();
@@ -302,7 +307,6 @@ function setup(shaders){
         else lighsMode = gl.TRIANGLES;
         
         pushMatrix();
-            multTranslation([0,0.5,0]);
             objectD();
         popMatrix();
         pushMatrix();
