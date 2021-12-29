@@ -69,12 +69,6 @@ function setup(shaders){
     var atF = cameraF.addFolder('at');
     var upF = cameraF.addFolder('up');
 
-/*
-    //Melhorar
-    const uShininess = gl.getUniformLocation(program, "uMaterial.shininess");
-    const uKaOfLight0 = gl.getUniformLocation(program, "uLight[0].Ia");
-*/
-
 
     let options = {
         culling : true,
@@ -335,12 +329,22 @@ function setup(shaders){
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
         
+        const uKa = gl.getUniformLocation(program, "uMaterial.Ka");
+        gl.uniform3fv(uKa, material.Ka);
+
+        const uKd = gl.getUniformLocation(program, "uMaterial.Kd");
+        gl.uniform3fv(uKd, material.Kd);
+
+        const uKs = gl.getUniformLocation(program, "uMaterial.Ks");
+        gl.uniform3fv(uKs, material.Ks);
+
+        const uShininess = gl.getUniformLocation(program, "uMaterial.shininess");
+        gl.uniform1f(uShininess, material.shininess);
+
         //if(options.wireframe == true)
         mode = gl.TRIANGLES;
-        //else mode = gl.TRIANGLES;
-
+        //else mode = gl.TRIANGLES;        
         
-
         if(options.lights)  //Not sure se é isto que é para acontecer
         lighsMode = gl.LINES;
         else lighsMode = gl.TRIANGLES;
@@ -360,4 +364,4 @@ function setup(shaders){
 }
 
 const urls = ["shader.vert", "shader.frag"];
-loadShadersFromURLS(urls).then(shaders => setup(shaders))
+loadShadersFromURLS(urls).then(shaders => setup(shaders));
