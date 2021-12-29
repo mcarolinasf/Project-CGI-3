@@ -163,9 +163,9 @@ export function buildProgramFromSources(gl, vShaderSrc, fShaderSrc)
   gl.linkProgram(program);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      alert("Could not initialise shaders");
-      return null;
-  }
+    alert("Could not initialise shaders\n" + gl.getProgramInfoLog(program));
+    return null;
+}
 
   
   return program;

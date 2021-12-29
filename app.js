@@ -17,7 +17,7 @@ let gl;
 
 let mouseDown = false;
 let mouseX = 0,mouseY = 0;
-let mode,lighsMode,mView, mProjection;
+let mView, mProjection;
 
 //Arrays
 let lightsArray = [];
@@ -34,7 +34,8 @@ function setup(shaders){
 
     gl = setupWebGL(canvas);
 
-    let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
+    let program1 = buildProgramFromSources(gl, shaders["shader1.vert"], shaders["shader1.frag"]);
+    let program2 = buildProgramFromSources(gl, shaders["shader2.vert"], shaders["shader2.frag"]);
 
     const gui = new dat.GUI();
     const obj = new dat.GUI();
@@ -271,7 +272,7 @@ function setup(shaders){
     }
 
     function uploadModelView(){
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program1, "mModelView"), false, flatten(modelView()));
     }
 
 
@@ -280,7 +281,7 @@ function setup(shaders){
         multScale([FLOORX_SCALE,FLOORY_SCALE,FLOORZ_SCALE]);
      
         uploadModelView();
-        CUBE.draw(gl, program, options.solid ? gl.TRIANGLES : gl.LINES);
+        CUBE.draw(gl, program1, options.solid ? gl.TRIANGLES : gl.LINES);
     }
 
     function lights(){
@@ -289,34 +290,44 @@ function setup(shaders){
             
             pushMatrix();
                 let l = lightsArray[i];
-            
-                if(l.animation) {
-                
-                    let R = rotate(ANGLE, vec4(camera.eye,0));
-                    let temp = mult(R,vec4(l.position,1));
-                    l.position[0] = temp[0];
-                    l.position[1] = temp[1];
-                    l.position[2] = temp[2];
-                }
+
+                animationAlterations(l);
 
                 if(options.lights)
-                    if(l.active){
-                        light(l.position[0],l.position[1],l.position[2]);
-                    }else l.animation = false;
+                activeAlterations(l);
+
+                gl.uniform3fv(gl.getUniformLocation(program2, "uColor"),scale(1/255,l.ambient));
+                
             popMatrix();
             
         }
    
     }
 
+    function animationAlterations(l){
+        if(l.animation) {
+                
+            let R = rotate(ANGLE, vec4(camera.eye,0));
+            let temp = mult(R,vec4(l.position,1));
+            l.position[0] = temp[0];
+            l.position[1] = temp[1];
+            l.position[2] = temp[2];
+        }
+    }
+
+    function activeAlterations(l){
+        if(l.active){
+            light(l.position[0],l.position[1],l.position[2]);
+        }else l.animation = false;
+    }
 
     function light(x,y,z){
 
         multTranslation([x,y,z]);
         multScale([LIGHT_DIAMETER,LIGHT_DIAMETER,LIGHT_DIAMETER]);
-     
-        uploadModelView();
-        SPHERE.draw(gl, program, gl.TRIANGLES);
+
+        gl.uniformMatrix4fv(gl.getUniformLocation(program2, "mModelView"), false, flatten(modelView()));
+        SPHERE.draw(gl, program2, gl.TRIANGLES);
     }
 
   
@@ -325,19 +336,19 @@ function setup(shaders){
         let mode = material.solid ? gl.TRIANGLES : gl.LINES
         switch(object.type){
             case objectsArray[0]:
-                TORUS.draw(gl, program, mode)
+                TORUS.draw(gl, program1, mode)
                 break;
             case objectsArray[1]:
-                CUBE.draw(gl, program, mode)
+                CUBE.draw(gl, program1, mode)
                 break;
             case objectsArray[2]:
-                SPHERE.draw(gl, program, mode)
+                SPHERE.draw(gl, program1, mode)
                 break;
             case objectsArray[3]:
-                CYLINDER.draw(gl, program, mode)
+                CYLINDER.draw(gl, program1, mode)
                 break;
             case objectsArray[4]:
-                PYRAMID.draw(gl, program, mode)
+                PYRAMID.draw(gl, program1, mode)
                 break;
         }
     }
@@ -347,31 +358,31 @@ function setup(shaders){
 
         for(let i = 0; i < lightsArray.length; i++){
             
-            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].Ia"), scale(1/255, lightsArray[i].ambient));
-            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].Id"), scale(1/255, lightsArray[i].diffuse));
-            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].Is"), scale(1/255, lightsArray[i].specular));
-            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].pos"), lightsArray[i].position);
-            gl.uniform1i(gl.getUniformLocation(program, "uLight[" + i +"].isDirectional"), lightsArray[i].directional?1:0);
-            gl.uniform1i(gl.getUniformLocation(program, "uLight[" + i +"].isActive"), lightsArray[i].active?1:0);
-            gl.uniform1i(gl.getUniformLocation(program, "uNLights"), lightsArray.length);
+            gl.uniform3fv(gl.getUniformLocation(program1, "uLight[" + i +"].Ia"), scale(1/255, lightsArray[i].ambient));
+            gl.uniform3fv(gl.getUniformLocation(program1, "uLight[" + i +"].Id"), scale(1/255, lightsArray[i].diffuse));
+            gl.uniform3fv(gl.getUniformLocation(program1, "uLight[" + i +"].Is"), scale(1/255, lightsArray[i].specular));
+            gl.uniform3fv(gl.getUniformLocation(program1, "uLight[" + i +"].pos"), lightsArray[i].position);
+            gl.uniform1i(gl.getUniformLocation(program1, "uLight[" + i +"].isDirectional"), lightsArray[i].directional?1:0);
+            gl.uniform1i(gl.getUniformLocation(program1, "uLight[" + i +"].isActive"), lightsArray[i].active?1:0);
+            gl.uniform1i(gl.getUniformLocation(program1, "uNLights"), lightsArray.length);
         }
     }
 
     function uploadMaterial(){
 
-        gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Ka"),scale(1/255, material.Ka));
-        gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Kd"),scale(1/255, material.Kd));
-        gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Ks"),scale(1/255, material.Ks));
-        gl.uniform1f(gl.getUniformLocation(program, "uMaterial.shininess"),material.shininess);
+        gl.uniform3fv(gl.getUniformLocation(program1, "uMaterial.Ka"),scale(1/255, material.Ka));
+        gl.uniform3fv(gl.getUniformLocation(program1, "uMaterial.Kd"),scale(1/255, material.Kd));
+        gl.uniform3fv(gl.getUniformLocation(program1, "uMaterial.Ks"),scale(1/255, material.Ks));
+        gl.uniform1f(gl.getUniformLocation(program1, "uMaterial.shininess"),material.shininess);
        
     }
 
     function uploadMatrices(){
 
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mView"), false, flatten(mView));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mViewNormals"), false, flatten(normalMatrix(mView)));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mNormals"), false, flatten(normalMatrix(modelView())));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program1, "mProjection"), false, flatten(mProjection));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program1, "mView"), false, flatten(mView));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program1, "mViewNormals"), false, flatten(normalMatrix(mView)));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program1, "mNormals"), false, flatten(normalMatrix(modelView())));
 
     }
 
@@ -391,7 +402,7 @@ function setup(shaders){
 
         mProjection = perspective(camera.fovy, camera.aspect, camera.near, camera.far);
 
-        gl.useProgram(program);
+        gl.useProgram(program1);
 
 
         //Uploads
@@ -405,6 +416,10 @@ function setup(shaders){
         pushMatrix();
             floor();
         popMatrix();
+
+        gl.useProgram(program2);
+        gl.uniformMatrix4fv(gl.getUniformLocation(program2, "mProjection"), false, flatten(mProjection));
+       
         pushMatrix();
             lights();
         popMatrix();
@@ -413,5 +428,5 @@ function setup(shaders){
     }
 }
 
-const urls = ["shader.vert", "shader.frag"];
+const urls = ["shader1.vert", "shader1.frag", "shader2.vert", "shader2.frag"];
 loadShadersFromURLS(urls).then(shaders => setup(shaders));
