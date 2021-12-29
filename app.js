@@ -298,7 +298,7 @@ function setup(shaders){
                     l.position[1] = temp[1];
                     l.position[2] = temp[2];
                 }
-                
+
                 if(options.lights)
                     if(l.active){
                         light(l.position[0],l.position[1],l.position[2]);
@@ -316,7 +316,7 @@ function setup(shaders){
         multScale([LIGHT_DIAMETER,LIGHT_DIAMETER,LIGHT_DIAMETER]);
      
         uploadModelView();
-        SPHERE.draw(gl, program, lighsMode);
+        SPHERE.draw(gl, program, gl.TRIANGLES);
     }
 
   
@@ -366,6 +366,15 @@ function setup(shaders){
        
     }
 
+    function uploadMatrices(){
+
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mView"), false, flatten(mView));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mViewNormals"), false, flatten(normalMatrix(mView)));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mNormals"), false, flatten(normalMatrix(modelView())));
+
+    }
+
 
     function render(){
         if(options.culling) gl.enable(gl.CULL_FACE);
@@ -385,17 +394,8 @@ function setup(shaders){
         gl.useProgram(program);
 
 
-        //Ver se dá para chamar noutro sitio
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mView"), false, flatten(mView));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mViewNormals"), false, flatten(normalMatrix(mView)));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mNormals"), false, flatten(normalMatrix(modelView())));
-               
-        
-        if(options.lights)  //Not sure se é isto que é para acontecer
-        lighsMode = gl.LINES;
-        else lighsMode = gl.TRIANGLES;
-
+        //Uploads
+        uploadMatrices();
         uploadLight();
         uploadMaterial();
 
