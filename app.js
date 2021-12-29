@@ -21,7 +21,7 @@ let mView, mProjection;
 
 //Arrays
 let lightsArray = [];
-let objectsArray = ['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
+let objectsArray = ['TORUS', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
 
 //Constants
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
@@ -45,8 +45,8 @@ function setup(shaders){
     }
 
     let material = {
-        Ka : [0,25,0],
-        Kd : [102,192,187],
+        Ka : [31,31,88],
+        Kd : [205,138,160],
         Ks : [255,255,255],
         shininess : 50,
         solid : true      
@@ -98,8 +98,8 @@ function setup(shaders){
 
         let light = {
             position : vec3(1,1.2,0),
-            ambient: [75,75,75],
-            diffuse: [175,175,175],
+            ambient: [255,166,166],
+            diffuse: [240,240,240],
             specular: [255,255,255],
             directional : false,
             active : true,
