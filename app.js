@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten, perspective, vec3 } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, perspective, vec3, vec4 } from "../../libs/MV.js";
 import {modelView, loadMatrix, multRotationY,multRotationZ, multRotationX, multScale, multTranslation, popMatrix, pushMatrix} from "../../libs/stack.js";
 
 import * as TORUS from '../../libs/torus.js';
@@ -8,7 +8,7 @@ import * as SPHERE from '../../libs/sphere.js';
 import * as CYLINDER from '../../libs/cylinder.js';
 import * as PYRAMID from '../../libs/pyramid.js';
 import * as dat from '../../libs/dat.gui.module.js';
-import { inverse, rotate } from "./libs/MV.js";
+import { inverse, mult, normalMatrix, rotate, rotateY, scale } from "./libs/MV.js";
 
 
 /** @type WebGLRenderingContext */
@@ -17,8 +17,7 @@ let gl;
 let mouseDown = false;
 let mouseX = 0;
 let mouseY = 0;
-let speed = 0.5;
-let time = 0;
+const ANGLE = 1;
 let mode,lighsMode;
 let mView, mProjection;
 let lightsArray = [];
@@ -44,7 +43,7 @@ function setup(shaders){
 
     let material = {
         Ka : [0,25,0],
-        Kd : [0,100,0],
+        Kd : [102,192,187],
         Ks : [255,255,255],
         shininess : 50       
     }
@@ -58,7 +57,7 @@ function setup(shaders){
     materialF.addColor(material,'Ka');
     materialF.addColor(material,'Kd');
     materialF.addColor(material,'Ks');
-    materialF.add(material,'shininess');
+    materialF.add(material,'shininess').min(1);
    
 
     //Creating Folders for gui
@@ -82,7 +81,6 @@ function setup(shaders){
         diffuse: [175,175,175],
         specular: [255,255,255],
         directional : false,
-        pontual : false,
         active : true,
         animation : true
     }
@@ -96,12 +94,11 @@ function setup(shaders){
         var positionLF = lightsX.addFolder('position');
         var optionsLF = lightsX.addFolder('options');
 
-        positionLF.add(lightO.position, '0');
-        positionLF.add(lightO.position, '1');
-        positionLF.add(lightO.position, '2');
+        positionLF.add(lightO.position, '0').min(0);
+        positionLF.add(lightO.position, '1').min(0);
+        positionLF.add(lightO.position, '2').min(0);
 
         optionsLF.add(lightO,'directional');
-        optionsLF.add(lightO,'pontual');
         optionsLF.add(lightO,'active');
         optionsLF.add(lightO,'animation').listen();
 
@@ -132,15 +129,14 @@ function setup(shaders){
 
     //Adding camera variables
     cameraF.add(camera, 'fovy', 0, 100).listen();
-    cameraF.add(camera, 'aspect',0,10).listen();
     cameraF.add(camera, 'near', 0, 19.9).listen();
     cameraF.add(camera, 'far', 0, 20).listen();
 
 
     //Adding eye variables
-    eyeF.add(camera.eye, '0').listen();
-    eyeF.add(camera.eye, '1').listen();
-    eyeF.add(camera.eye, '2').listen();
+    eyeF.add(camera.eye, 0).listen();
+    eyeF.add(camera.eye, 1).listen();
+    eyeF.add(camera.eye, 2).listen();
 
     //Adding at variables
     atF.add(camera.at, '0').listen();
@@ -206,27 +202,31 @@ function setup(shaders){
     }
 
     canvas.addEventListener('mousemove', function (evt) {
-        console.log("algo");
         if (!mouseDown) {return} // is the button pressed?
         evt.preventDefault();
         var deltaX = evt.clientX - mouseX,
             deltaY = evt.clientY - mouseY;
         mouseX = evt.clientX;
         mouseY = evt.clientY;
-        
+        if(deltaX !=0 || deltaY != 0)
         dragAction(deltaX, deltaY);
-        console.log("ero");
     }, false);
 
     function dragAction(deltaX, deltaY) {
-        
-        let axisR = vec3(deltaY, deltaX,0);
-        let axisRWC = mult(inverse(normalMatrix(mView)),vec4(axisR,0));
-        //alert(axisRWC + "");
-        let R = rotate(-10,axisRWC);
-        rotate
 
-        camera.eye = camera.at + R;
+        let axisR = vec3(deltaY/10, deltaX/10,0);
+
+        let WC = normalMatrix(inverse(mView));
+
+        let axisRWC = vec4(mult(WC,vec4(axisR,0)));
+
+        let R = rotate(1,axisRWC);
+    
+        let tempEye = mult(R,vec4(camera.eye,1));
+
+        camera.eye = vec3(tempEye[0], tempEye[1], tempEye[2]);
+
+
     }
 
 
@@ -265,11 +265,23 @@ function setup(shaders){
 
     function lights(){
 
-        multRotationY(time);
         for(let i = 0; i < lightsArray.length ;i++){
             pushMatrix();
                 let l = lightsArray[i];
-                if(l.animation) time += speed;
+                
+                let x = l.position[0];
+                let z = l.position[2];
+
+                if(l.animation) {
+                
+                    //let R = rotate(ANGLE, vec4(camera.eye,0));
+                    //let temp = mult(R,vec4(l.position,1));
+                    //l.position = vec3(temp);
+
+                    //l.position[0] = x*Math.cos(ANGLE) - z*Math.sin((ANGLE));
+                    //l.position[2] = x*Math.sin(ANGLE) + z*Math.cos(ANGLE);
+                    console.log(l.position);
+                }
                 if(l.active){
                     light(l.position[0],l.position[1],l.position[2]);
                 }else l.animation = false;
@@ -280,6 +292,7 @@ function setup(shaders){
 
 
     function light(x,y,z){
+
         multTranslation([x,y,z]);
         multScale([LIGHT_DIAMETER,LIGHT_DIAMETER,LIGHT_DIAMETER]);
      
@@ -310,6 +323,34 @@ function setup(shaders){
     }
 
 
+    function uploadLight(){
+
+        for(let i = 0; i < lightsArray.length; i++){
+            
+            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].Ia"), scale(1/255, lightsArray[i].ambient));
+            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].Id"), scale(1/255, lightsArray[i].diffuse));
+            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].Is"), scale(1/255, lightsArray[i].specular));
+            gl.uniform3fv(gl.getUniformLocation(program, "uLight[" + i +"].pos"), lightsArray[i].position);
+            gl.uniform1i(gl.getUniformLocation(program, "uLight[" + i +"].isDirectional"), lightsArray[i].directional?1:0);
+            gl.uniform1i(gl.getUniformLocation(program, "uLight[" + i +"].isActive"), lightsArray[i].active?1:0);
+            gl.uniform1i(gl.getUniformLocation(program, "uNLights"), lightsArray.length);
+            
+
+        }
+    }
+
+    function uploadMaterial(){
+
+        
+        gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Ka"),scale(1/255, material.Ka));
+        gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Kd"),scale(1/255, material.Kd));
+        gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Ks"),scale(1/255, material.Ks));
+        gl.uniform1f(gl.getUniformLocation(program, "uMaterial.shininess"),material.shininess);
+       
+
+    }
+
+
     function render(){
         if(options.culling) gl.enable(gl.CULL_FACE);
         else gl.disable(gl.CULL_FACE);
@@ -326,20 +367,16 @@ function setup(shaders){
         mProjection = perspective(camera.fovy, camera.aspect, camera.near, camera.far);
 
         gl.useProgram(program);
-        
+
+
+        //Ver se dá para chamar noutro sitio
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mView"), false, flatten(mView));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mViewNormals"), false, flatten(normalMatrix(mView)));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mNormals"), false, flatten(normalMatrix(modelView())));
         
-        const uKa = gl.getUniformLocation(program, "uMaterial.Ka");
-        gl.uniform3fv(uKa, material.Ka);
-
-        const uKd = gl.getUniformLocation(program, "uMaterial.Kd");
-        gl.uniform3fv(uKd, material.Kd);
-
-        const uKs = gl.getUniformLocation(program, "uMaterial.Ks");
-        gl.uniform3fv(uKs, material.Ks);
-
-        const uShininess = gl.getUniformLocation(program, "uMaterial.shininess");
-        gl.uniform1f(uShininess, material.shininess);
+        
+        
 
         //if(options.wireframe == true)
         mode = gl.TRIANGLES;
@@ -348,7 +385,10 @@ function setup(shaders){
         if(options.lights)  //Not sure se é isto que é para acontecer
         lighsMode = gl.LINES;
         else lighsMode = gl.TRIANGLES;
-        
+
+        uploadLight();
+        uploadMaterial();
+
         pushMatrix();
             objectD();
         popMatrix();

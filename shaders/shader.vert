@@ -18,5 +18,6 @@ fNormal = (mNormals * vNormal).xyz;
 
 
 gl_Position =  mProjection * mModelView * vPosition;
+
 }
 
