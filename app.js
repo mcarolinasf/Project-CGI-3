@@ -14,18 +14,20 @@ import { inverse, mult, normalMatrix, rotate, rotateY, scale } from "./libs/MV.j
 /** @type WebGLRenderingContext */
 let gl;
 
+
 let mouseDown = false;
-let mouseX = 0;
-let mouseY = 0;
-const ANGLE = 1;
-let mode,lighsMode;
-let mView, mProjection;
+let mouseX = 0,mouseY = 0;
+let mode,lighsMode,mView, mProjection;
+
+//Arrays
 let lightsArray = [];
 let objectsArray = ['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
 
+//Constants
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
 const LIGHT_DIAMETER = 0.1;
 const MAX_LIGHT = 8;
+const ANGLE = 1;
 
 function setup(shaders){
     let canvas = document.getElementById("gl-canvas");
@@ -33,7 +35,6 @@ function setup(shaders){
     gl = setupWebGL(canvas);
 
     let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
-
 
     const gui = new dat.GUI();
     const obj = new dat.GUI();
@@ -46,7 +47,8 @@ function setup(shaders){
         Ka : [0,25,0],
         Kd : [102,192,187],
         Ks : [255,255,255],
-        shininess : 50       
+        shininess : 50,
+        solid : true      
     }
 
     obj.add(object, 'type', objectsArray);
@@ -59,6 +61,7 @@ function setup(shaders){
     materialF.addColor(material,'Kd');
     materialF.addColor(material,'Ks');
     materialF.add(material,'shininess').min(1);
+    materialF.add(material,'solid');
    
 
     //Creating Folders for gui
@@ -74,6 +77,7 @@ function setup(shaders){
         culling : true,
         depth : true,
         lights : true,
+        solid : true
     }
 
     let button = {
@@ -106,9 +110,9 @@ function setup(shaders){
         let positionLF = lightsX.addFolder('position');
         let optionsLF = lightsX.addFolder('options');
 
-        positionLF.add(light.position, '0').min(0).listen();
-        positionLF.add(light.position, '1').min(0).listen();
-        positionLF.add(light.position, '2').min(0).listen();
+        positionLF.add(light.position, '0').listen();
+        positionLF.add(light.position, '1').listen();
+        positionLF.add(light.position, '2').listen();
 
         optionsLF.add(light,'directional').listen();
         optionsLF.add(light,'active').listen();
@@ -124,12 +128,11 @@ function setup(shaders){
     }
 
   
-
-
     //Adding options variables
     optionsF.add(options, 'culling');
     optionsF.add(options, 'depth');
     optionsF.add(options, 'lights');
+    optionsF.add(options, 'solid');
 
     let camera = {
        
@@ -277,12 +280,13 @@ function setup(shaders){
         multScale([FLOORX_SCALE,FLOORY_SCALE,FLOORZ_SCALE]);
      
         uploadModelView();
-        CUBE.draw(gl, program, gl.TRIANGLES);
+        CUBE.draw(gl, program, options.solid ? gl.TRIANGLES : gl.LINES);
     }
 
     function lights(){
 
         for(let i = 0; i < lightsArray.length ;i++){
+            
             pushMatrix();
                 let l = lightsArray[i];
             
@@ -293,12 +297,14 @@ function setup(shaders){
                     l.position[0] = temp[0];
                     l.position[1] = temp[1];
                     l.position[2] = temp[2];
-
                 }
-                if(l.active){
-                    light(l.position[0],l.position[1],l.position[2]);
-                }else l.animation = false;
+                
+                if(options.lights)
+                    if(l.active){
+                        light(l.position[0],l.position[1],l.position[2]);
+                    }else l.animation = false;
             popMatrix();
+            
         }
    
     }
@@ -316,6 +322,7 @@ function setup(shaders){
   
     function objectD(){
         uploadModelView();
+        let mode = material.solid ? gl.TRIANGLES : gl.LINES
         switch(object.type){
             case objectsArray[0]:
                 TORUS.draw(gl, program, mode)
@@ -347,20 +354,16 @@ function setup(shaders){
             gl.uniform1i(gl.getUniformLocation(program, "uLight[" + i +"].isDirectional"), lightsArray[i].directional?1:0);
             gl.uniform1i(gl.getUniformLocation(program, "uLight[" + i +"].isActive"), lightsArray[i].active?1:0);
             gl.uniform1i(gl.getUniformLocation(program, "uNLights"), lightsArray.length);
-            
-
         }
     }
 
     function uploadMaterial(){
 
-        
         gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Ka"),scale(1/255, material.Ka));
         gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Kd"),scale(1/255, material.Kd));
         gl.uniform3fv(gl.getUniformLocation(program, "uMaterial.Ks"),scale(1/255, material.Ks));
         gl.uniform1f(gl.getUniformLocation(program, "uMaterial.shininess"),material.shininess);
        
-
     }
 
 
@@ -387,13 +390,7 @@ function setup(shaders){
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mView"), false, flatten(mView));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mViewNormals"), false, flatten(normalMatrix(mView)));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mNormals"), false, flatten(normalMatrix(modelView())));
-        
-        
-        
-
-        //if(options.wireframe == true)
-        mode = gl.TRIANGLES;
-        //else mode = gl.TRIANGLES;        
+               
         
         if(options.lights)  //Not sure se é isto que é para acontecer
         lighsMode = gl.LINES;
