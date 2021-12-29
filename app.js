@@ -25,6 +25,7 @@ let objectsArray = ['DONUT', 'CUBE', 'SPHERE', 'CYLINDER', 'PYRAMID'];
 
 const FLOORX_SCALE = 3,FLOORY_SCALE = 0.1, FLOORZ_SCALE = 3;
 const LIGHT_DIAMETER = 0.1;
+const MAX_LIGHT = 8;
 
 function setup(shaders){
     let canvas = document.getElementById("gl-canvas");
@@ -75,40 +76,54 @@ function setup(shaders){
         lights : true,
     }
 
-    let lightO = {
-        position : vec3(1,1.2,0),
-        ambient: [75,75,75],
-        diffuse: [175,175,175],
-        specular: [255,255,255],
-        directional : false,
-        active : true,
-        animation : true
+    let button = {
+        name: function() {
+            addLight();
+        }
     }
 
-    addLight();
+    lightsF.add(button,"name").name("Add light");
 
     //Adding light variables
     function addLight(){
 
-        var lightsX = lightsF.addFolder('light1');
-        var positionLF = lightsX.addFolder('position');
-        var optionsLF = lightsX.addFolder('options');
+        let i = lightsArray.length + 1;
 
-        positionLF.add(lightO.position, '0').min(0);
-        positionLF.add(lightO.position, '1').min(0);
-        positionLF.add(lightO.position, '2').min(0);
+        if(MAX_LIGHT >= i){
 
-        optionsLF.add(lightO,'directional');
-        optionsLF.add(lightO,'active');
-        optionsLF.add(lightO,'animation').listen();
+        let light = {
+            position : vec3(1,1.2,0),
+            ambient: [75,75,75],
+            diffuse: [175,175,175],
+            specular: [255,255,255],
+            directional : false,
+            active : true,
+            animation : true
+        }
 
-        lightsX.addColor(lightO,'ambient');
-        lightsX.addColor(lightO,'diffuse');
-        lightsX.addColor(lightO,'specular');
+
+        let lightsX = lightsF.addFolder('light ' + i);
+        let positionLF = lightsX.addFolder('position');
+        let optionsLF = lightsX.addFolder('options');
+
+        positionLF.add(light.position, '0').min(0).listen();
+        positionLF.add(light.position, '1').min(0).listen();
+        positionLF.add(light.position, '2').min(0).listen();
+
+        optionsLF.add(light,'directional').listen();
+        optionsLF.add(light,'active').listen();
+        optionsLF.add(light,'animation').listen();
+
+        lightsX.addColor(light,'ambient').listen();
+        lightsX.addColor(light,'diffuse').listen();
+        lightsX.addColor(light,'specular').listen();
 
       
-        lightsArray.push(lightO);
+        lightsArray.push(light);
+        }
     }
+
+  
 
 
     //Adding options variables
@@ -128,7 +143,7 @@ function setup(shaders){
     }
 
     //Adding camera variables
-    cameraF.add(camera, 'fovy', 0, 100).listen();
+    cameraF.add(camera, 'fovy', 0, 100 , 0.2).listen();
     cameraF.add(camera, 'near', 0, 19.9).listen();
     cameraF.add(camera, 'far', 0, 20).listen();
 
@@ -224,7 +239,9 @@ function setup(shaders){
     
         let tempEye = mult(R,vec4(camera.eye,1));
 
-        camera.eye = vec3(tempEye[0], tempEye[1], tempEye[2]);
+        camera.eye[0] = tempEye[0];
+        camera.eye[1] = tempEye[1];
+        camera.eye[2] = tempEye[2];
 
 
     }
@@ -268,19 +285,15 @@ function setup(shaders){
         for(let i = 0; i < lightsArray.length ;i++){
             pushMatrix();
                 let l = lightsArray[i];
-                
-                let x = l.position[0];
-                let z = l.position[2];
-
+            
                 if(l.animation) {
                 
-                    //let R = rotate(ANGLE, vec4(camera.eye,0));
-                    //let temp = mult(R,vec4(l.position,1));
-                    //l.position = vec3(temp);
+                    let R = rotate(ANGLE, vec4(camera.eye,0));
+                    let temp = mult(R,vec4(l.position,1));
+                    l.position[0] = temp[0];
+                    l.position[1] = temp[1];
+                    l.position[2] = temp[2];
 
-                    //l.position[0] = x*Math.cos(ANGLE) - z*Math.sin((ANGLE));
-                    //l.position[2] = x*Math.sin(ANGLE) + z*Math.cos(ANGLE);
-                    console.log(l.position);
                 }
                 if(l.active){
                     light(l.position[0],l.position[1],l.position[2]);

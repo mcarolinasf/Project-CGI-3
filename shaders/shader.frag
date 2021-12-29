@@ -43,6 +43,7 @@ void main() {
     for(int i=0; i<MAX_LIGHTS; i++){
 
         if(i == uNLights) break;
+        if(uLight[i].isActive){
 
         //isDirectional
         if(uLight[i].isDirectional){
@@ -75,6 +76,7 @@ void main() {
         
         I += ambient + diffuse + specular;
         
+    }
     }
 
     gl_FragColor = vec4(I, 1.0);
