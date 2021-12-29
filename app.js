@@ -8,12 +8,15 @@ import * as SPHERE from '../../libs/sphere.js';
 import * as CYLINDER from '../../libs/cylinder.js';
 import * as PYRAMID from '../../libs/pyramid.js';
 import * as dat from '../../libs/dat.gui.module.js';
+import { inverse, rotate } from "./libs/MV.js";
 
 
 /** @type WebGLRenderingContext */
 let gl;
 
-
+let mouseDown = false;
+let mouseX = 0;
+let mouseY = 0;
 let speed = 0.5;
 let time = 0;
 let mode,lighsMode;
@@ -207,6 +210,42 @@ function setup(shaders){
             camera.at[2] -= offset;
         }
     }
+
+    canvas.addEventListener('mousemove', function (evt) {
+        console.log("algo");
+        if (!mouseDown) {return} // is the button pressed?
+        evt.preventDefault();
+        var deltaX = evt.clientX - mouseX,
+            deltaY = evt.clientY - mouseY;
+        mouseX = evt.clientX;
+        mouseY = evt.clientY;
+        
+        dragAction(deltaX, deltaY);
+        console.log("ero");
+    }, false);
+
+    function dragAction(deltaX, deltaY) {
+        
+        let axisR = vec3(deltaY, deltaX,0);
+        let axisRWC = mult(inverse(normalMatrix(mView)),vec4(axisR,0));
+        //alert(axisRWC + "");
+        let R = rotate(-10,axisRWC);
+        rotate
+
+        camera.eye = camera.at + R;
+    }
+
+
+    canvas.addEventListener('mouseup', function (evt) {
+        mouseDown = false;
+    }, false);
+
+    canvas.addEventListener('mousedown', function (evt) {
+        evt.preventDefault();
+        mouseDown = true;
+        mouseX = evt.clientX;
+        mouseY = evt.clientY;
+    }, false);
 
     function resize_canvas(event){
         canvas.width = window.innerWidth;
